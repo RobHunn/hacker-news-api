@@ -8,6 +8,7 @@ $(async function () {
   const $ownStories = $("#my-articles");
   const $navLogin = $("#nav-login");
   const $navLogOut = $("#nav-logout");
+  const $myArticles = $("#my-articles");
   // user profile stuff 
   let $myUserProfile = $("#user-profile2");
   let $myProfileName = $("#profile-name");
@@ -17,6 +18,7 @@ $(async function () {
   // nav
   let $navPost = $("#nav-post");
   let $navWelcome = $("#nav-welcome");
+  let $navMyPosts = $("#nav-my-posts");
 
   // global storyList variable
   let storyList = null;
@@ -25,6 +27,7 @@ $(async function () {
   let currentUser = null;
 
   await checkIfLoggedIn();
+  console.log('currentUser. :', currentUser.ownStories);
 
   /**
    * Event listener for logging in.
@@ -90,11 +93,42 @@ $(async function () {
   });
 
   /**
-     * Event Handler for Clicking Porifle name
+     * Event Handler for Clicking nav Porfile name
      */
   $myPro.on("click", function () {
     showProfileInfo()
     $myUserProfile.toggle();
+  })
+
+  /**
+     * Event Handler for Clicking delete icon on myposts
+     */
+  $myArticles.on('click', 'img', async function (evt) {
+    const $targetId = evt.target.parentNode.parentNode.id
+    console.log('$targetId :', $targetId);
+    if (evt.target.id === 'delete-post') {
+      const $res = await StoryList.deleteStory(currentUser, $targetId)
+      console.log('res :', $res);
+      if (res) {
+        currentUser.ownStories = currentUser.ownStories.filter(e => e.storyId !== storyId;
+        $navMyPosts.trigger('click')
+      }
+    } else {
+      console.log(' set up edit function please');
+    }
+  })
+
+  /**
+     * Event Handler for Clicking nav my posts
+     */
+  $navMyPosts.on("click", function () {
+    $myArticles.empty()
+    $allStoriesList.hide(500);
+    for (let story of currentUser.ownStories) {
+      const result = generateStoryHTMLmyPosts(story);
+      $myArticles.append(result);
+    }
+    $myArticles.show(500);
   })
 
   /**
@@ -104,9 +138,6 @@ $(async function () {
     hideElements();
     $submitForm.show(300)
     $author = $("#author").text(currentUser.username)
-
-    // const newStoryPost = StoryList.addStory(user, newStory);
-    // generateStoryHTML(newStoryPost);
   })
 
   /**
@@ -121,8 +152,11 @@ $(async function () {
       url
     }
     const newStoryPost = await StoryList.addStory(currentUser, newStory);
+    currentUser.ownStories.unshift(newStoryPost);
     console.log('newStoryPost :', newStoryPost);
-    generateStoryHTML(newStoryPost);
+    $submitForm.hide(700)
+    await generateStories();
+    $allStoriesList.show(500);
   })
 
   /**
@@ -154,6 +188,7 @@ $(async function () {
 
     if (currentUser) {
       $navWelcome.text(username);
+      console.log('currentUser from localstorage :', currentUser);
       showNavForLoggedInUser();
     }
   }
@@ -187,6 +222,7 @@ $(async function () {
     // update the navigation bar
     showNavForLoggedInUser();
     showProfileInfo()
+    console.log('currentUser from login form :', currentUser);
   }
 
   /**
@@ -231,6 +267,35 @@ $(async function () {
     return storyMarkup;
   }
 
+
+  /**
+   * A function to render HTML for nav my-posts link
+   */
+
+  function generateStoryHTMLmyPosts(story) {
+    let hostName = getHostName(story.url);
+
+    // render story markup
+    const storyMarkup = $(`
+      <li id="${story.storyId}">
+        <span>
+          <img id="delete-post" style="margin-right:10px" width="15px" height="15px" src="trash.png">
+        </span>
+        <span>
+          <img id="edit-post" style="margin-right:10px" width="15px" height="15px" src="edit-post.png">
+        </span>
+        <a class="article-link" href="${story.url}" target="a_blank">
+          <strong>${story.title}</strong>
+        </a>
+        <small class="article-author">by ${story.author}</small>
+        <small class="article-hostname ${hostName}">(${hostName})</small>
+        <small class="article-username">posted by ${story.username}</small>
+      </li>
+    `);
+
+    return storyMarkup;
+  }
+
   /* hide all elements in elementsArr */
 
   function hideElements() {
@@ -251,7 +316,9 @@ $(async function () {
     $navLogOut.show();
     $navPost.show();
     $navWelcome.show();
+    $navMyPosts.show();
   }
+
 
   /* simple function to pull the hostname from a URL */
 
