@@ -1,5 +1,6 @@
 $(async function () {
   // cache some selectors we'll be using quite a bit
+
   const $allStoriesList = $("#all-articles-list");
   const $submitForm = $("#submit-form");
   const $filteredArticles = $("#filtered-articles");
@@ -15,6 +16,8 @@ $(async function () {
   let $myUsername = $("#profile-username");
   let $myProfileAccountDate = $("#profile-account-date");
   let $myPro = $("#nav-welcome")
+  const $editArticleForm = $("#edit-article-form")
+  let $findMe = $("#findMe")
   // nav
   let $navPost = $("#nav-post");
   let $navWelcome = $("#nav-welcome");
@@ -27,7 +30,7 @@ $(async function () {
   let currentUser = null;
 
   await checkIfLoggedIn();
-  console.log('currentUser. :', currentUser.ownStories);
+
 
   /**
    * Event listener for logging in.
@@ -45,7 +48,7 @@ $(async function () {
     const userInstance = await User.login(username, password);
     // set the global user to the user instance
     currentUser = userInstance;
-
+    console.log('ownstories from login :', currentUser.ownStories);
     syncCurrentUserToLocalStorage();
     loginAndSubmitForm();
   });
@@ -101,20 +104,54 @@ $(async function () {
   })
 
   /**
-     * Event Handler for Clicking delete icon on myposts
+     * Event Handler for Clicking delete OR edit icon on myposts
      */
   $myArticles.on('click', 'img', async function (evt) {
+
     const $targetId = evt.target.parentNode.parentNode.id
-    console.log('$targetId :', $targetId);
+    console.log('evt.target.id :', $targetId);
     if (evt.target.id === 'delete-post') {
-      const $res = await StoryList.deleteStory(currentUser, $targetId)
-      console.log('res :', $res);
-      if (res) {
-        currentUser.ownStories = currentUser.ownStories.filter(e => e.storyId !== storyId;
-        $navMyPosts.trigger('click')
+      let yesOrNo = prompt('sure you want to delete, theres no going back...');
+      if (yesOrNo && yesOrNo.toLocaleLowerCase() === 'yes') {
+        const $res = await StoryList.deleteStory(currentUser, $targetId)
+        console.log('res :', $res);
+        if ($res) {
+          currentUser.ownStories = currentUser.ownStories.filter(e => e.storyId !== $targetId);
+          $myArticles.empty()
+          for (let story of currentUser.ownStories) {
+            const result = generateStoryHTMLmyPosts(story);
+            $myArticles.append(result);
+          }
+          $myArticles.show(500);
+        }
       }
+    } else if (evt.target.id === 'edit-post') {
+      $findMe.val($targetId)
+      $editArticleForm.show()
     } else {
-      console.log(' set up edit function please');
+      return
+    }
+  })
+
+  $editArticleForm.on('submit', async function (evt) {
+    // const $targetId = evt.target.parentNode.parentNode.id
+    evt.preventDefault();
+    $myArticles.hide();
+    let id = $("#findMe").val();
+    console.log('findeMe  :', id);
+    let title = $("#edit-title").val();
+    let url = $("#edit-url").val();
+    let newStory = {
+      title,
+      url
+    }
+    const $res = await StoryList.patchStory(currentUser, id, newStory)
+    console.log('res :', $res);
+    $editArticleForm.hide();
+    if ($res) {
+      currentUser.ownStories = currentUser.ownStories.filter(e => e.storyId !== id);
+      currentUser.ownStories.unshift($res)
+      $navMyPosts.trigger('click')
     }
   })
 
@@ -128,15 +165,15 @@ $(async function () {
       const result = generateStoryHTMLmyPosts(story);
       $myArticles.append(result);
     }
-    $myArticles.show(500);
+    $myArticles.toggle(500);
   })
 
   /**
        * Event Handler for Clicking post new story nav
        */
   $navPost.on("click", function () {
-    hideElements();
-    $submitForm.show(300)
+    $allStoriesList.hide(500);
+    $submitForm.toggle(500)
     $author = $("#author").text(currentUser.username)
   })
 
@@ -154,7 +191,8 @@ $(async function () {
     const newStoryPost = await StoryList.addStory(currentUser, newStory);
     currentUser.ownStories.unshift(newStoryPost);
     console.log('newStoryPost :', newStoryPost);
-    $submitForm.hide(700)
+    $submitForm.hide(700);
+    $myArticles.hide();
     await generateStories();
     $allStoriesList.show(500);
   })
@@ -188,7 +226,7 @@ $(async function () {
 
     if (currentUser) {
       $navWelcome.text(username);
-      console.log('currentUser from localstorage :', currentUser);
+      console.log('database :', currentUser.ownStories);
       showNavForLoggedInUser();
     }
   }
@@ -273,6 +311,7 @@ $(async function () {
    */
 
   function generateStoryHTMLmyPosts(story) {
+    console.log('story from generateHTML :', story);
     let hostName = getHostName(story.url);
 
     // render story markup

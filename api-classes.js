@@ -53,6 +53,25 @@ class StoryList {
       return { 'message': error }
     }
   }
+  static async patchStory(user, storyId, newStory) {
+    console.log('storyId,newStory :', storyId, newStory);
+    try {
+      const response = await axios.patch(`${BASE_URL}/stories/${storyId}`,
+        {
+          "token": user.loginToken,
+          "story": {
+            "title": newStory.title,
+            "url": newStory.url
+          }
+        });
+      let story = response.data.story;
+      story = new Story(story);
+      return story;
+    } catch (error) {
+      console.log('error :', error);
+      return { 'message': error }
+    }
+  }
 }
 
 class User {
@@ -167,22 +186,5 @@ class Story {
     this.createdAt = storyObj.createdAt;
     this.updatedAt = storyObj.updatedAt;
   }
-  static async patchStory(user, storyId, newStory) {
-    try {
-      const response = await axios.patch(`${BASE_URL}/stories/${storyId}`,
-        {
-          "token": user.loginToken,
-          "story": {
-            "title": newStory.title,
-            "url": newStory.url
-          }
-        });
-      let story = response.data.story;
-      story = new Story(story);
-      return story;
-    } catch (error) {
-      console.log('error :', error);
-      return err = { 'message': error }
-    }
-  }
+
 }
