@@ -6,6 +6,7 @@ class StoryList {
   }
 
   static async getStories() {
+
     try {
       const response = await axios.get(`${BASE_URL}/stories`);
       const stories = response.data.stories.map(story => new Story(story));
@@ -18,6 +19,7 @@ class StoryList {
   }
 
   static async getOneStory(storyId) {
+
     try {
       const res = await axios.get(`${BASE_URL}/stories/${storyId}`);
       const newFav = new Story(res.data.story);
@@ -29,6 +31,7 @@ class StoryList {
   }
 
   static async addStory(user, newStory) {
+
     try {
       const response = await axios.post(`${BASE_URL}/stories`,
         {
@@ -48,6 +51,7 @@ class StoryList {
   }
 
   static async deleteStory(user, postId) {
+
     try {
       const res = await axios({
         url: `${BASE_URL}/stories/${postId}`,
@@ -64,7 +68,7 @@ class StoryList {
     }
   }
   static async patchStory(user, storyId, newStory) {
-    console.log('storyId,newStory :', storyId, newStory);
+
     try {
       const response = await axios.patch(`${BASE_URL}/stories/${storyId}`,
         {
@@ -90,8 +94,6 @@ class User {
     this.name = userObj.name;
     this.createdAt = userObj.createdAt;
     this.updatedAt = userObj.updatedAt;
-
-    // these are all set to defaults, not passed in by the constructor
     this.loginToken = "";
     this.favorites = [];
     this.ownStories = [];
@@ -106,77 +108,63 @@ class User {
   }
 
   static async create(username, password, name) {
-    const response = await axios.post(`${BASE_URL}/signup`, {
-      user: {
-        username,
-        password,
-        name
-      }
-    });
 
-    // build a new User instance from the API response
-    const newUser = new User(response.data.user);
-
-    // attach the token to the newUser instance for convenience
-    newUser.loginToken = response.data.token;
-
-    return newUser;
+    try {
+      const response = await axios.post(`${BASE_URL}/signup`, {
+        user: {
+          username,
+          password,
+          name
+        }
+      });
+      const newUser = new User(response.data.user);
+      newUser.loginToken = response.data.token;
+      return newUser;
+    } catch (error) {
+      console.log('error :', error);
+      return { 'message': error }
+    }
   }
-
-  /* Login in user and return user instance.
-
-   * - username: an existing user's username
-   * - password: an existing user's password
-   */
 
   static async login(username, password) {
-    const response = await axios.post(`${BASE_URL}/login`, {
-      user: {
-        username,
-        password
-      }
-    });
+    try {
+      const response = await axios.post(`${BASE_URL}/login`, {
+        user: {
+          username,
+          password
+        }
+      });
+      const existingUser = new User(response.data.user);
+      existingUser.favorites = response.data.user.favorites.map(s => new Story(s));
+      existingUser.ownStories = response.data.user.stories.map(s => new Story(s));
+      existingUser.loginToken = response.data.token;
+      return existingUser;
 
-    // build a new User instance from the API response
-    const existingUser = new User(response.data.user);
-
-    // instantiate Story instances for the user's favorites and ownStories
-    existingUser.favorites = response.data.user.favorites.map(s => new Story(s));
-    existingUser.ownStories = response.data.user.stories.map(s => new Story(s));
-
-    // attach the token to the newUser instance for convenience
-    existingUser.loginToken = response.data.token;
-
-    return existingUser;
+    } catch (error) {
+      console.log('error :', error);
+      return { 'message': error }
+    }
   }
 
-  /** Get user instance for the logged-in-user.
-   *
-   * This function uses the token & username to make an API request to get details
-   *   about the user. Then it creates an instance of user with that info.
-   */
-
   static async getLoggedInUser(token, username) {
-    // if we don't have user info, return null
+
     if (!token || !username) return null;
 
-    // call the API
-    const response = await axios.get(`${BASE_URL}/users/${username}`, {
-      params: {
-        token
-      }
-    });
-
-    // instantiate the user from the API information
-    const existingUser = new User(response.data.user);
-
-    // attach the token to the newUser instance for convenience
-    existingUser.loginToken = token;
-
-    // instantiate Story instances for the user's favorites and ownStories
-    existingUser.favorites = response.data.user.favorites.map(s => new Story(s));
-    existingUser.ownStories = response.data.user.stories.map(s => new Story(s));
-    return existingUser;
+    try {
+      const response = await axios.get(`${BASE_URL}/users/${username}`, {
+        params: {
+          token
+        }
+      });
+      const existingUser = new User(response.data.user);
+      existingUser.loginToken = token;
+      existingUser.favorites = response.data.user.favorites.map(s => new Story(s));
+      existingUser.ownStories = response.data.user.stories.map(s => new Story(s));
+      return existingUser;
+    } catch (error) {
+      console.log('error :', error);
+      return { 'message': error };
+    }
   }
 }
 

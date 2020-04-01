@@ -48,11 +48,15 @@ $(async function () {
 
     // call the login static method to build a user instance
     const userInstance = await User.login(username, password);
-    // set the global user to the user instance
-    currentUser = userInstance;
-    console.log('ownstories from login :', currentUser.ownStories);
-    syncCurrentUserToLocalStorage();
-    loginAndSubmitForm();
+    console.log('userInstance :', userInstance);
+    if (userInstance.username === username) {
+      currentUser = userInstance;
+      console.log('ownstories from login :', currentUser.ownStories);
+      syncCurrentUserToLocalStorage();
+      loginAndSubmitForm();
+    } else {
+      alert('You shall not pass!!! 🧙‍♂️, Seriously try again, username or pass worng... i know these alerts are anoying and i cant beleave your still reading this....lolzssss')
+    }
   });
 
   /**
@@ -70,9 +74,16 @@ $(async function () {
 
     // call the create method, which calls the API and then builds a new user instance
     const newUser = await User.create(username, password, name);
-    currentUser = newUser;
-    syncCurrentUserToLocalStorage();
-    loginAndSubmitForm();
+    console.log('newUser :', newUser);
+    if (newUser.username === username) {
+      currentUser = newUser;
+      syncCurrentUserToLocalStorage();
+      loginAndSubmitForm();
+    } else {
+      alert('There was an error, no 🍜 for you...');
+      return
+    }
+
   });
 
   /**
@@ -102,7 +113,11 @@ $(async function () {
      */
   $myPro.on("click", function () {
     showProfileInfo()
+    $allStoriesList.hide();
+    $myArticles.hide();
+    $favoritedArticles.hide();
     $myUserProfile.toggle();
+
   })
 
   /**
@@ -119,6 +134,7 @@ $(async function () {
         console.log('res :', $res);
         if ($res) {
           currentUser.ownStories = currentUser.ownStories.filter(e => e.storyId !== $targetId);
+          currentUser.favorites = currentUser.favorites.filter(e => e.storyId !== $targetId);
           $myArticles.empty()
           for (let story of currentUser.ownStories) {
             const result = generateStoryHTMLmyPosts(story);
@@ -150,12 +166,14 @@ $(async function () {
       url
     }
     const $res = await StoryList.patchStory(currentUser, id, newStory)
-    console.log('res :', $res);
+    console.log('res from patch :', $res);
     $editArticleForm.hide();
     if ($res) {
       currentUser.ownStories = currentUser.ownStories.filter(e => e.storyId !== id);
       currentUser.ownStories.unshift($res)
       $navMyPosts.trigger('click')
+      currentUser.favorites = currentUser.favorites.filter(e => e.storyId !== id);
+      currentUser.favorites.unshift($res)
     }
   })
 
@@ -163,26 +181,34 @@ $(async function () {
    * Event Handler for Clicking nav my posts
    */
   $navMyPosts.on("click", function () {
-    $myArticles.empty()
-    $allStoriesList.hide(500);
-    for (let story of currentUser.ownStories) {
-      const result = generateStoryHTMLmyPosts(story);
-      $myArticles.append(result);
+    if (currentUser.ownStories.length > 0) {
+      $favoritedArticles.hide(500)
+      $myArticles.empty()
+      $allStoriesList.hide(500);
+      $submitForm.hide(500);
+      for (let story of currentUser.ownStories) {
+        const result = generateStoryHTMLmyPosts(story);
+        $myArticles.append(result);
+      }
+      $myArticles.toggle(500);
+    } else {
+      alert('Yesss it another alert box, And guess what? you got no post... so go add some! side note, i like 🍕...')
     }
-    $myArticles.toggle(500);
   })
 
   /**
    * Event Handler for Clicking post new story nav
    */
   $navPost.on("click", function () {
+    $myArticles.hide(500);
     $allStoriesList.hide(500);
-    $submitForm.toggle(500)
-    $author = $("#author").text(currentUser.username)
+    $favoritedArticles.hide(500);
+    $submitForm.toggle(500);
+    $author = $("#author").text(currentUser.username);
   })
 
   /**
-   * Event Handler for Clicking post new story nav
+   * Event Handler for Clicking submit new story nav
    */
   $submitForm.on("submit", async function (evt) {
     evt.preventDefault();
@@ -197,6 +223,7 @@ $(async function () {
     console.log('newStoryPost :', newStoryPost);
     $submitForm.hide(700);
     $myArticles.hide();
+    $favoritedArticles.hide(500);
     await generateStories();
     $allStoriesList.show(500);
   })
@@ -206,16 +233,35 @@ $(async function () {
     */
   $allStoriesList.on('click', 'img', async function (evt) {
     const favId = evt.target.dataset.monkey;
-    const res = await StoryList.getOneStory(favId);
-    currentUser.favorites.push(res);
-    const updateUserFav = await User.addFav(currentUser, favId);
-    console.log('updateUserFav, frontend :', updateUserFav);
+    let count = currentUser.favorites.filter(e => e.storyId === favId);
+    console.log(evt);
+    console.log('favId :', favId);
+    let xxxx = currentUser.ownStories.every(e => e.storyId !== favId)
+    console.log('xxxx :', xxxx);
+    if (count.length > 0) {
+      return alert('This post already favortied, you silly goose 🦢')
+    } else if (!xxxx) {
+      return alert('🚫 🚧 Go like someone else post, not your own! 🚧 🚫 ')
+    } else {
+      const res = await StoryList.getOneStory(favId);
+      currentUser.favorites.push(res);
+      const updateUserFav = await User.addFav(currentUser, favId);
+      console.log('updateUserFav, frontend :', updateUserFav);
+      alert(`${updateUserFav.message}`)
+      $favoritedArticles.empty()
+      currentUser.favorites.forEach((e) => {
+        const res = generateStoryHTML(e);
+        $favoritedArticles.append(res);
+      })
+    }
   })
   /**
   * Event Handler for Clicking favs on nav bar
   */
   $navUserViewFavs.on('click', function () {
     if (currentUser.favorites.length) {
+      $myArticles.hide();
+      $submitForm.hide(500);
       $favoritedArticles.empty()
       $allStoriesList.hide(500);
       $favoritedArticles.toggle()
@@ -224,7 +270,7 @@ $(async function () {
         $favoritedArticles.append(res);
       })
     } else {
-      alert('you have no fav stories, becouse your a looser!!!')
+      alert('you have no fav stories... very sad 😢 😭')
     }
   })
 
@@ -251,11 +297,13 @@ $(async function () {
     //  to get an instance of User with the right details
     //  this is designed to run once, on page load
     currentUser = await User.getLoggedInUser(token, username);
-    await generateStories();
 
     if (currentUser) {
+      await generateStories();
       $navWelcome.text(username);
       showNavForLoggedInUser();
+    } else {
+      await generateStories();
     }
   }
 
@@ -281,7 +329,7 @@ $(async function () {
     // reset those forms
     $loginForm.trigger("reset");
     $createAccountForm.trigger("reset");
-
+    generateStories()
     // show the stories
     $allStoriesList.show(1000);
 
@@ -315,9 +363,22 @@ $(async function () {
   function generateStoryHTML(story) {
     let hostName = getHostName(story.url);
 
-    // render story markup
-    const storyMarkup = $(`
+    if (currentUser === null) {
+      let storyMarkup = $(`
       <li id="${story.storyId}">
+        <a class="article-link" href="${story.url}" target="a_blank">
+          <strong>${story.title}</strong>
+        </a>
+        <small class="article-author">by ${story.author}</small>
+        <small class="article-hostname ${hostName}">(${hostName})</small>
+        <small class="article-username">posted by ${story.username}</small>
+      </li>
+    `);
+      return storyMarkup;
+    } else {
+      let storyMarkup = $(`
+      <li id="${story.storyId}">
+      
         <span>
           <img data-monkey="${story.storyId}" style="margin-right:10px" width="10px" height="10px" src="love.png">
         </span>
@@ -329,8 +390,8 @@ $(async function () {
         <small class="article-username">posted by ${story.username}</small>
       </li>
     `);
-
-    return storyMarkup;
+      return storyMarkup;
+    }
   }
 
 
