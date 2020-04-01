@@ -1,6 +1,5 @@
 $(async function () {
   // cache some selectors we'll be using quite a bit
-
   const $allStoriesList = $("#all-articles-list");
   const $submitForm = $("#submit-form");
   const $filteredArticles = $("#filtered-articles");
@@ -16,8 +15,11 @@ $(async function () {
   let $myUsername = $("#profile-username");
   let $myProfileAccountDate = $("#profile-account-date");
   let $myPro = $("#nav-welcome")
-  const $editArticleForm = $("#edit-article-form")
+  const $editArticleForm = $("#edit-article-form");
   let $findMe = $("#findMe")
+  let $favoritedArticles = $("#favorited-articles");
+  let $navMyfavs = $("#nav-my-favs");
+  let $navUserViewFavs = $("#nav-user-view-favs");
   // nav
   let $navPost = $("#nav-post");
   let $navWelcome = $("#nav-welcome");
@@ -111,7 +113,7 @@ $(async function () {
     const $targetId = evt.target.parentNode.parentNode.id
     console.log('evt.target.id :', $targetId);
     if (evt.target.id === 'delete-post') {
-      let yesOrNo = prompt('sure you want to delete, theres no going back...');
+      let yesOrNo = prompt('Are you sure? Type "yes" to delete...');
       if (yesOrNo && yesOrNo.toLocaleLowerCase() === 'yes') {
         const $res = await StoryList.deleteStory(currentUser, $targetId)
         console.log('res :', $res);
@@ -124,7 +126,7 @@ $(async function () {
           }
           $myArticles.show(500);
         }
-      }
+      }//edit icon handler goes to function below...
     } else if (evt.target.id === 'edit-post') {
       $findMe.val($targetId)
       $editArticleForm.show()
@@ -133,8 +135,10 @@ $(async function () {
     }
   })
 
+  /**
+    * Event Handler edit submit btn...
+    */
   $editArticleForm.on('submit', async function (evt) {
-    // const $targetId = evt.target.parentNode.parentNode.id
     evt.preventDefault();
     $myArticles.hide();
     let id = $("#findMe").val();
@@ -156,8 +160,8 @@ $(async function () {
   })
 
   /**
-     * Event Handler for Clicking nav my posts
-     */
+   * Event Handler for Clicking nav my posts
+   */
   $navMyPosts.on("click", function () {
     $myArticles.empty()
     $allStoriesList.hide(500);
@@ -169,8 +173,8 @@ $(async function () {
   })
 
   /**
-       * Event Handler for Clicking post new story nav
-       */
+   * Event Handler for Clicking post new story nav
+   */
   $navPost.on("click", function () {
     $allStoriesList.hide(500);
     $submitForm.toggle(500)
@@ -178,8 +182,8 @@ $(async function () {
   })
 
   /**
-       * Event Handler for Clicking post new story nav
-       */
+   * Event Handler for Clicking post new story nav
+   */
   $submitForm.on("submit", async function (evt) {
     evt.preventDefault();
     let title = $("#title").val();
@@ -198,10 +202,35 @@ $(async function () {
   })
 
   /**
+    * Event Handler for Clicking heart icon to fav a post
+    */
+  $allStoriesList.on('click', 'img', async function (evt) {
+    const favId = evt.target.dataset.monkey;
+    const res = await StoryList.getOneStory(favId);
+    currentUser.favorites.push(res);
+    const updateUserFav = await User.addFav(currentUser, favId);
+    console.log('updateUserFav, frontend :', updateUserFav);
+  })
+  /**
+  * Event Handler for Clicking favs on nav bar
+  */
+  $navUserViewFavs.on('click', function () {
+    if (currentUser.favorites.length) {
+      $favoritedArticles.empty()
+      $allStoriesList.hide(500);
+      $favoritedArticles.toggle()
+      currentUser.favorites.forEach((e) => {
+        const res = generateStoryHTML(e);
+        $favoritedArticles.append(res);
+      })
+    } else {
+      alert('you have no fav stories, becouse your a looser!!!')
+    }
+  })
+
+  /**
    * Event handler for Navigation to Homepage
    */
-
-
   $("body").on("click", "#nav-all", async function () {
     hideElements();
     await generateStories();
@@ -226,7 +255,6 @@ $(async function () {
 
     if (currentUser) {
       $navWelcome.text(username);
-      console.log('database :', currentUser.ownStories);
       showNavForLoggedInUser();
     }
   }
@@ -260,7 +288,6 @@ $(async function () {
     // update the navigation bar
     showNavForLoggedInUser();
     showProfileInfo()
-    console.log('currentUser from login form :', currentUser);
   }
 
   /**
@@ -269,11 +296,9 @@ $(async function () {
    */
 
   async function generateStories() {
-    // get an instance of StoryList
+
     const storyListInstance = await StoryList.getStories();
-    // update our global variable
     storyList = storyListInstance;
-    // empty out that part of the page
     $allStoriesList.empty();
 
     // loop through all of our stories and generate HTML for them
@@ -293,6 +318,9 @@ $(async function () {
     // render story markup
     const storyMarkup = $(`
       <li id="${story.storyId}">
+        <span>
+          <img data-monkey="${story.storyId}" style="margin-right:10px" width="10px" height="10px" src="love.png">
+        </span>
         <a class="article-link" href="${story.url}" target="a_blank">
           <strong>${story.title}</strong>
         </a>
@@ -356,6 +384,7 @@ $(async function () {
     $navPost.show();
     $navWelcome.show();
     $navMyPosts.show();
+    $navMyfavs.show();
   }
 
 
@@ -384,4 +413,7 @@ $(async function () {
       localStorage.setItem("createdAt", currentUser.createdAt);
     }
   }
+
 });
+
+

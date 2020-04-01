@@ -10,8 +10,18 @@ class StoryList {
       const response = await axios.get(`${BASE_URL}/stories`);
       const stories = response.data.stories.map(story => new Story(story));
       const storyList = new StoryList(stories);
-      console.log('im storyList', storyList);
       return storyList;
+    } catch (error) {
+      console.log('error :', error);
+      return { 'message': error }
+    }
+  }
+
+  static async getOneStory(storyId) {
+    try {
+      const res = await axios.get(`${BASE_URL}/stories/${storyId}`);
+      const newFav = new Story(res.data.story);
+      return newFav;
     } catch (error) {
       console.log('error :', error);
       return { 'message': error }
@@ -87,14 +97,13 @@ class User {
     this.ownStories = [];
   }
 
-  /* Create and return a new user.
-   *
-   * Makes POST request to API and returns newly-created user.
-   *
-   * - username: a new username
-   * - password: a new password
-   * - name: the user's full name
-   */
+  static async addFav(user, storyId) {
+    const res = await axios.post(`${BASE_URL}/users/${user.username}/favorites/${storyId}`, {
+      "token": user.loginToken
+    });
+    console.log('res  i be res :', res);
+    return res.data
+  }
 
   static async create(username, password, name) {
     const response = await axios.post(`${BASE_URL}/signup`, {
