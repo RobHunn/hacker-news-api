@@ -172,8 +172,6 @@ $(async function () {
       currentUser.ownStories = currentUser.ownStories.filter(e => e.storyId !== id);
       currentUser.ownStories.unshift($res)
       $navMyPosts.trigger('click')
-      currentUser.favorites = currentUser.favorites.filter(e => e.storyId !== id);
-      currentUser.favorites.unshift($res)
     }
   })
 

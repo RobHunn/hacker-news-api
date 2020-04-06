@@ -5,7 +5,7 @@ class StoryList {
     this.stories = stories;
   }
 
-  static async getStories() {
+  static getStories = async () => {
 
     try {
       const response = await axios.get(`${BASE_URL}/stories`);
@@ -18,7 +18,7 @@ class StoryList {
     }
   }
 
-  static async getOneStory(storyId) {
+  static getOneStory = async (storyId) => {
 
     try {
       const res = await axios.get(`${BASE_URL}/stories/${storyId}`);
@@ -30,7 +30,7 @@ class StoryList {
     }
   }
 
-  static async addStory(user, newStory) {
+  static addStory = async (user, newStory) => {
 
     try {
       const response = await axios.post(`${BASE_URL}/stories`,
@@ -50,7 +50,7 @@ class StoryList {
     }
   }
 
-  static async deleteStory(user, postId) {
+  static deleteStory = async (user, postId) => {
 
     try {
       const res = await axios({
@@ -67,7 +67,7 @@ class StoryList {
       return { 'message': error }
     }
   }
-  static async patchStory(user, storyId, newStory) {
+  static patchStory = async (user, storyId, newStory) => {
 
     try {
       const response = await axios.patch(`${BASE_URL}/stories/${storyId}`,
@@ -99,7 +99,7 @@ class User {
     this.ownStories = [];
   }
 
-  static async addFav(user, storyId) {
+  static addFav = async (user, storyId) => {
     const res = await axios.post(`${BASE_URL}/users/${user.username}/favorites/${storyId}`, {
       "token": user.loginToken
     });
@@ -107,7 +107,7 @@ class User {
     return res.data
   }
 
-  static async create(username, password, name) {
+  static create = async (username, password, name) => {
 
     try {
       const response = await axios.post(`${BASE_URL}/signup`, {
@@ -126,7 +126,7 @@ class User {
     }
   }
 
-  static async login(username, password) {
+  static login = async (username, password) => {
     try {
       const response = await axios.post(`${BASE_URL}/login`, {
         user: {
@@ -146,7 +146,7 @@ class User {
     }
   }
 
-  static async getLoggedInUser(token, username) {
+  static getLoggedInUser = async (token, username) => {
 
     if (!token || !username) return null;
 
